@@ -1,0 +1,31 @@
+\contentsline {section}{\numberline {1}Prelude}{3}{section.1}%
+\contentsline {subsection}{\numberline {1.1}Usage}{3}{subsection.1.1}%
+\contentsline {section}{\numberline {2}Preprocessing and Testing}{3}{section.2}%
+\contentsline {subsection}{\numberline {2.1}Data Assessment}{3}{subsection.2.1}%
+\contentsline {subsection}{\numberline {2.2}Standardization}{4}{subsection.2.2}%
+\contentsline {subsection}{\numberline {2.3}Bias Term}{4}{subsection.2.3}%
+\contentsline {section}{\numberline {3}Feature Maps}{4}{section.3}%
+\contentsline {section}{\numberline {4}Kernels}{5}{section.4}%
+\contentsline {subsection}{\numberline {4.1}Polynomial Kernel}{5}{subsection.4.1}%
+\contentsline {subsection}{\numberline {4.2}Gaussian Kernel}{6}{subsection.4.2}%
+\contentsline {subsubsection}{\numberline {4.2.1}Tuning $\sigma {}$}{6}{subsubsection.4.2.1}%
+\contentsline {section}{\numberline {5}Perceptron}{7}{section.5}%
+\contentsline {section}{\numberline {6}Pegasos}{7}{section.6}%
+\contentsline {subsection}{\numberline {6.1}Tuning $\lambda {}$}{8}{subsection.6.1}%
+\contentsline {section}{\numberline {7}Logistic Regression}{9}{section.7}%
+\contentsline {section}{\numberline {8}Results}{10}{section.8}%
+\contentsline {section}{\numberline {9}Perceptron}{11}{section.9}%
+\contentsline {subsection}{\numberline {9.1}No Feature Mapping ($Pc$)}{11}{subsection.9.1}%
+\contentsline {subsection}{\numberline {9.2}Quadratic Feature Mapping ($Pc_{\phi ^{poly}_2}$)}{12}{subsection.9.2}%
+\contentsline {subsection}{\numberline {9.3}Polynomial Kernelized ($Pc_{K^{poly}}$)}{13}{subsection.9.3}%
+\contentsline {subsection}{\numberline {9.4}Gaussian Kernelized ($Pc_{K^{Gauss}}$)}{14}{subsection.9.4}%
+\contentsline {section}{\numberline {10}Pegasos}{15}{section.10}%
+\contentsline {subsection}{\numberline {10.1}No Feature Mapping ($Pe$)}{16}{subsection.10.1}%
+\contentsline {subsection}{\numberline {10.2}Quadratic Feature Mapping ($Pe_{\phi {}^{poly}_2}$)}{17}{subsection.10.2}%
+\contentsline {subsection}{\numberline {10.3}Polynomial Kernelized ($Pe_{K^{poly}}$)}{18}{subsection.10.3}%
+\contentsline {subsection}{\numberline {10.4}Gaussian Kernelized ($Pe_{K^{Gauss}}$)}{19}{subsection.10.4}%
+\contentsline {section}{\numberline {11}Logistic Regression}{20}{section.11}%
+\contentsline {subsection}{\numberline {11.1}No Feature Mapping ($Lr$)}{20}{subsection.11.1}%
+\contentsline {subsection}{\numberline {11.2}Quadratic Feature Map ($Lr_{\phi ^{poly}_2}$)}{20}{subsection.11.2}%
+\contentsline {section}{\numberline {12}Conclusions}{20}{section.12}%
+\contentsline {section}{References}{21}{section*.2}%

@@ -1,0 +1,250 @@
+\makeindex
+\title{Statistical Methods for Machine Learning Experimental Project - Kernelized Linear Predictors}
+\author{Lorenzo Lucarella}
+
+\begin{document}
+\setlength{\parskip}{\baselineskip} 
+\AddToShipoutPicture*{\BackgroundPic}
+
+\maketitle{}
+\pagebreak{}
+\tableofcontents{}
+\noindent{}
+
+\pagebreak{}
+
+Declaration
+
+I declare that this material, which I now submit for assessment, is entirely my own work and has not been taken from the work of others, save and to the extent that such work has been cited and acknowledged within the text of my work. I understand that plagiarism, collusion, and copying are grave and serious offences in the university and accept the penalties that would be imposed should I engage in plagiarism, collusion or copying. This assignment, or any part of it, has not been previously submitted by me or any other person for assessment on this or any other course of study.
+
+\section{Prelude}
+
+\subsection{Usage}
+It is recommended to look into the "proj" and "results" notebooks. In both notebooks only the first cell needs to be evaluated in order to run the others. The "searches.py" script is provided to run all searches from the command line.
+
+\section{Preprocessing and Testing}
+As prescribed by the project, all learning algorithms will be evaluated with a 5-fold cross validation, reporting the mean and maximum training loss. Rather than learning a predictor through a grid search, I'll run the grid search using the whole dataset as training data.
+
+\subsection{Data Assessment}
+The dataset, in $\mathcal{X} = \mathbb{R}^10 \times{} \mathcal{Y} = \{-1, +1\}$. All datapoints have the same features. 
+
+A quick visual inspection shows that the features $x_3$, $x_6$ and $x_10$ are linearly correlated across the whole dataset, although with some noise. Therefore, I will consider a preprocessing step in which either all features are kept or features $x_6$ and $x_10$ are removed.
+
+\subsection{Standardization}
+Feature standardization is a preprocessing step in which a map $S_{\mu{}, \sigma{}}(x) = \frac{x - \mu{}}{\sigma{}}$, with $\mu{}_i$ and $\sigma{}_i$ being the estimates of $\mathbb{E}[X_i]$ and $\sqrt{Var[X_i]}$, is applied to the datapoints.
+
+To prevent data leaks, the parameters will be learned from the training set: $\mu{}$ will be estimated using the sample mean, and $\sigma{}$ will be estimated using the square root of the uncorrected sample variance.
+
+\subsection{Bias Term}
+A bias term is an artificial feature with a constant value added in preprocessing. Its main use in the context of linear predictors is to make it possible to express non-homogeneous separating hyperplanes, i.e. hyperplanes of the form $a + p(x)$; this extends to when such predictors are learned in the space induced by a polynomial feature map: adding a bias term before applying the feature map is an elegant way to introduce all lower-degree terms in the mapped space without explicitly accounting for them in the definition of the map.
+
+I will add a bias term in preprocessing for all considered classifiers outside of the ones using the Gaussian kernel, as it can be trivially shown that it has no effect on the value of the kernel.
+
+\section{Feature Maps}
+In the context of classification with real-valued vectors, a feature map is a function $\phi{}: \mathbb{R}^d \to{} \mathbb{R}^{d'}$. Depending on the nature of the feature map, learning a simple separator in the mapped space can be equivalent to learning a more complex one in the original space.
+
+Specifically, I will consider polynomial feature maps of degree $n$ taking the form: \[ 
+\phi{}^{poly}_n(x) = [\prod_{i \in 1 \dots{} n}{x_{c_i}} : (c_1, \dots c_n) \in{} C(n, 1...m) ] 
+\] which allow a linear separator in the mapped space to act like a polynomial separator of degree $n$ in the original space. 
+
+Such maps quickly become unfeasible to compute -let alone train classifiers with- given that $d' \sim d^{\Theta{}(n)}$. However, $\phi^{poly}_2$ can be used when $d$ is low, such as in our case where $d = 11$.
+
+\section{Kernels}
+Again in the context of classification with real-valued features, a kernel is a function $K: \mathcal{X} \times \mathcal{X} \to \mathbb{R}$ such that there exists some feature map $\phi{}_K$ such that for all $(x, x') \in \mathcal{X}^2$ it holds that $K(x, x') = \inner{\phi{}_K(x)}{\phi{}_K(x')}$. The space induced by the feature map and therefore the kernel will be denoted as $H_{K}$, and the inner product as $\inner{\cdot{}}{\cdot{}}_{H_K}$.
+
+Due to the bilinearity of inner products, all elements of $H_K$ can be represented as linear combinations of finitely many elements of $\mathcal{X}$, for instance as pairs $(\alpha{}, x)\in \mathbb{R}^n \times{} \mathcal{X}^n$ for some $n \in \mathbb{N}$. Then, \[\inner{(\alpha{}, x)}{(\alpha{}', x')}_{H_K} = \sum_{i \in 1 \dots{} n}\sum_{j \in 1 \dots{} n'}{\alpha{}_i\alpha{}'_jK(x_i, x'_j)}\].
+
+With this representation and given an upper bound $t_K$ on the time complexity of a kernel evaluation, an inner product evaluation would have a time complexity of $\Theta(nn't_K)$, but if all kernel evaluations between pairs of elements of $b$ and $b'$ are known this drops to $\Theta(nn')$; this will be useful for kernelized Perceptron and Pegasos, where the $\Theta(m^2t_K)$ time complexity of precomputing all kernel evaluations for pairs of elements in the training set turns out to be worthwhile.
+
+\subsection{Polynomial Kernel}
+I consider the biased polynomial kernel \[
+K^{poly}_n(x, x') = 1 + \inner{x}{x'}^n
+\] with $n \in \{ 2, 3, 4 \}$. 
+
+This kernel induces a polynomial feature map of degree $n$, identical to the one introduced earlier outside of the coefficients of the terms not being always 1 and the introduction of constant term; although as previously mentioned the bias term already introduces a constant term along with all the linear terms, I'll use this definition for the sake of simplicity.
+
+\subsection{Gaussian Kernel}
+I consider the Gaussian kernel \[
+K^{Gauss}_\sigma{}(x, x') = {exp}(-\frac{1}{2\sigma{}^2}\norm{x-x'}^2)
+\]. This kernel induces a feature map to an infinitely-dimensional feature space which is much akin to an infinite-degree polynomial feature map.
+
+\subsubsection{Tuning $\sigma{}$}
+
+$K^{Gauss}$ is readily interpretable as a distance function which outputs negligible values as soon as the Euclidean distance between the two arguments significantly exceeds $\sigma{}$, effectively becoming a "soft" neighborhood predicate. Therefore, a Gaussian kernelized linear classifier is similar in nature to $kNN$, and indeed with the correct choice of $\sigma{}$ it can become consistent.
+
+However given the necessarily small values of $m$ and $T$, rather than trying to achieve consistency I will instead consider values for $\sigma{}$ that are comparable to (a quick estimate of) the mean distance between elements of the training set, introducing a parameter $\rho{}$ and defining \[
+\sigma{}_{\rho{}} = \frac{\rho{}}{m} \sum_{i \in 1 \dots{} m} \norm{x_i - x'_i}
+\] with $x'$ being a random permutation of the datapoints in the training set.
+
+\pagebreak{}
+
+\section{Perceptron}
+The usual formulation of Perceptron learns a hyperplane $w$ by updating it until it separates the entire training set. However, I consider a modified formulation which runs a fixed $T$ updates, as the original variant runs the risk of never converging.
+
+\begin{algorithm}[H]
+    \caption{Perceptron}
+    \KwData{$T \in \mathbb{N}, S \subseteq{} \mathcal{\mathbb{R}^d} \times{} \{ -1, +1 \}$}
+    \KwResult{${sgn}(\inner{w_t}{\cdot{}})$}
+    $w_0 \gets{} 0$\;
+    \For{$t \in 1...N$}{
+        $x_t \gets X_{t \text{ mod } m}$\;
+        $y_t \gets Y_{t \text { mod } m}$\;
+
+        $e_t \gets \indicator{y_t\inner{w_{t-1}}{x_t} \leq 0}$\;
+        $w_t \gets w_{t-1} + e_ty_tx_t$\;
+    }
+\end{algorithm}
+
+Note that the actual implementation checks for convergence and terminates earlier if it can, but the result is the same.
+
+Kernelized perceptron is identical up to the different representation of the separator.
+
+\section{Pegasos}
+Pegasos solves the SVM optimization problem by gradient descent using the hinge loss $l_h(y, \hat{y}) = max \{ 0, 1 - y\hat{y} \}$.
+
+\begin{algorithm}[H]
+    \caption{Pegasos}
+    \KwData{$T \in{} \mathbb{N}, S \subseteq{} \mathcal{\mathbb{R}^d} \times{} \{ -1, +1 \}$}
+    \KwResult{${sgn}(\inner{\sum_{t \in{} 1 \dots{} T}{w_t}}{\cdot{}})$}
+    $w_0 \gets{} 0$\;
+    \For{$t \in{} 1 \dots{} T$}{
+        $(x_t, y_t) \gets$ a random element of $S$\;
+        $e_t \gets{} \nabla{}l_h(\inner{w_{t-1}}{x_t}, y_t) = \indicator{y_t\inner{w_{t-1}}{x_t} \leq 1}$\;
+        $w_{t} \gets{} \frac{t-1}{t}w_{t-1} + \frac{1}{\lambda{}t}\nabla{}l_ty_tx_t$\;
+    }
+\end{algorithm}
+
+I also consider a version that uses $w_T$ as the underlying linear separator for the output predictor as opposed to the sum of all $w$, using the boolean parameter ${a}$ to differentiate between the two. The expectation is that this version will yield a classifier which fits the training set better, which of course might introduce overfitting.
+
+Note that in my code, the update for non-kernelized Pegasos is written like in Perceptron and the right term in the comparison is $\lambda{}t$; this variant is equivalent to Pegasos proper for $\lambda{} \neq 0$, avoids $O(m)$ divisions in the training steps, is more readily understandable with respects to the kernelized variant, and makes it easier to introduce my approach to tuning $\lambda{}$.
+
+Again, kernelized Pegasos is identical up to the representation of the separator.
+
+Note that in the paper's pseudocode for Kernel Perceptron, the representation of the separator is slightly different to mine in that $\alpha{}$ is restrained to be in $\mathbb{N}^m$ rather than $\mathbb{Z}^m$, with the sign of the coefficients effectively being recovered through the labels; the author however wrongfully multiplies $\alpha{}_j$ with what my formulation expresses as $y_t$ rather than with $y_j$ in the terms of the summation which computes $\inner{w_{t-1}}{x_t}_{H_K}$. In my code, I use the representation introduced earlier that lets $\alpha{}$ have negative coefficients.
+
+\subsection{Tuning $\lambda{}$}
+By rewriting Pegasos as seen before, it becomes apparent that there actually is a hard limit to $\lambda{}$ which depends solely on the training data. Considering that for all $t \in \mathbb{N}_+$:
+
+\begin{equation*}
+    \begin{aligned}
+        & y_t\inner{w_{t-1}}{x_t} \\
+        & \leq \abs{\inner{w_{t-1}}{x_t}} \\
+        & = \abs{\sum_{i \in 1 \dots{} t-1}{e_i\inner{x_i}{x_t}}} \\
+        & \leq{} \sum_{i \in 1 \dots{} t-1}{\abs{\inner{x_i}{x_t}}} \\
+        & \leq{} t(\max_{i \in 1 \dots{} m}{\norm{x_i}^2})
+    \end{aligned}
+\end{equation*}
+
+we can conclude that for all \[
+\lambda{} \geq \lambda{}_W = \max_{i \in 1 \dots{} m}{\norm{x_i}^2}
+\] the algorithm will always behave in the same way by updating at every step, because the original term will always be less or equal to $\lambda{}t$.
+
+This introduces a natural upper limit to our range for $\lambda{}$, and the inequality \[
+ \mathbb{E}[F(\bar{w})] \leq F(w^\star{}) + 2\frac{X^2{log}(T + 1)}{\lambda{}T}
+\] where $F[\cdot{}]$ is the SVM objective and $X$ is the largest among the norms of the elements in the training set suggests that $\lambda{} = \Theta{}(\frac{log(T)}{T})$ will keep suboptimality stable in expectation.
+
+I'll therefore introduce an auxiliary parameter $T'$ and define $\lambda{}_{T'} = \lambda{}_{W^{0.98}}\frac{\log{T'}}{T'}$, where $\lambda_{W^{0.98}}$ is the 98th percentile of $\norm{\cdot{}}^2$ for the datapoints in the training set rather than the maximum in order to account for outliers; all grid searches where this parameter is explored will consider $T' \in \{ 5m, 500m, 50000m \}$, under the assumption that this is a conservative way of picking $\lambda{}$.
+
+Note that the given considerations also apply to kernelized Pegasos due to it being fully equivalent to Pegasos running in a feature mapped space.
+
+\section{Logistic Regression}
+
+The algorithm for logistic regression is very similar to Pegasos; the only difference is that the hinge loss is replaced with the logistic loss $l_{sgm}(y, \hat{y}) = 1 - e^{-y\hat{y}}$, which acts as a surrogate to it. Therefore, the algorithm is the exact same outside of the gradient being computed differently. Note that in this case I stick to the original algorithm.
+
+\pagebreak{}
+
+\section{Results}
+All tables refer to the best performer for each combination of the parameters in the leftmost column, with the remaining parameters listed in the central column and the losses on the training and test in the third column. The entries are sorted by loss on the test set.
+
+\pagebreak{}
+\section{Perceptron}
+
+\subsection{No Feature Mapping ($Pc$)}
+The algorithm heavily underfits under any configuration and regardless of how many updates it's allowed to run (in fact, it fails to meaningfully improve after as little as 50000 updates); standardization gives marginally better results, but there's very little that can be done about the linear predictor faling to fit.
+
+\input{resources/perceptron_table.tex}
+
+\pagebreak{}
+\subsection{Quadratic Feature Mapping ($Pc_{\phi^{poly}_2}$)}
+Given the increase in time complexity introduced by the feature mapping step, the maximum value for $T$ is lowered to $5000m$. The feature map is applied after preprocessing both for consistency w.r.t. the kernelized variants and to ensure that the bias term is available in the input datapoints so that the predictor can also capture linear terms.
+
+Standardization yields better results, but the algorithm is not quite as sensitive to it as $Pe$ is -as long as it is given a large enough $T$-. Results are obviously better than with Perceptron, but the similarity between training and testing losses suggests that the algorithm still underfits.
+
+\input{resources/perceptron_d2fm_table.tex}
+
+\pagebreak{}
+\subsection{Polynomial Kernelized ($Pc_{K^{poly}}$)}
+The complexity of an update step is now $\Theta(m)$, so the maximum value for $T$ is again lowered to $50m$. Note that this already amply justifies caching the kernel evaluations: with caching the time complexity is $\Theta{}(m^2d + mT)$, while without it's $\Theta{}(mdT)$, with $T$ being greater than $m$ in all reasonable cases.
+
+With $n = 2$ the behavior is in line with that of $Pc_{\phi^{poly}_2}$, both in terms of the loss over the test set and in how it compares to the loss over the training set. $n = 3$ performs best of all in terms of test loss, with the training loss still being comparable but clearly lower; on the other hand $n = 4$ overfits, being worse in comparison to $n = 3$ especially as it's given more epochs to properly fit to the training set; it still does perform better than $n = 2$, however.
+
+With the limited number of updates allowed to the algorithm, standardization yields far better results. Perhaps with greater values of $T$ we'd observe a similar behavior to $Pc_{\phi^{poly}_2}$, but this cannot be explored in this context. Interestingly, rather than merely providing competitive performance as seen with $Pc$ and  $Pc_{\phi^{poly}_2}$, feature removal turns out to be the outright better choice in this case.
+
+\input{resources/perceptron_poly_table.tex}
+
+\pagebreak{}
+\subsection{Gaussian Kernelized ($Pc_{K^{Gauss}}$)}
+The same complexity considerations apply as with $Pc_{K^{poly}}$.
+
+Unlike in the cases with polynomial feature maps, standardization doesn't have nearly as much of an effect in this case -and in fact it makes the algorithm perform worse as opposed to better, perhaps because in this case the magnitude of the features happens to be relevant. $\rho{} = 0.5$ and $\rho{} = 1$ are the best performers independently of other preprocessing, with values below underfitting and values above overfitting; this suggests that the choice for tuning $\sigma{}$ is at least sensible, although the high sensitivity of the algorithm to this parameter suggests that the grid is too coarse.
+
+In all cases where performance is acceptable to begin with, $T = 50m$ performs far better than $T = 5$.
+
+\input{resources/perceptron_gauss_table.tex}
+
+\pagebreak{}
+
+\section{Pegasos}
+The grids will be trimmed using information from the runs of the equivalent perceptron, and $T$ will be kept the same as in Perceptron unless explicitly noted.
+Note that accumulative Pegasos effectively proved to be better in almost all cases, and unless otherwise noted the behavior of a given variant is usually similar to the equivalent Perceptron but with better training and testing errors.
+
+\pagebreak{}
+\subsection{No Feature Mapping  ($Pe$)}
+Due to the larger size of the grid and the results generally being uninteresting, Pegasos will be run with $T = 5000m$ as the maximum as opposed to $T = 50000m$.
+
+Lower values for $T'$ appear to be better especially for smaller values of $T$, which means our approach for choosing $\lambda{}$ was sensible in this case.
+
+\input{resources/pegasos_table.tex}
+
+\pagebreak{}
+\subsection{Quadratic Feature Mapping ($Pe_{\phi{}^{poly}_2}$)}
+$T' = 5m$ leads to underfitting, while $T' = 500m$ and $T' = 50000m$ are ultimately comparable both in training and testing error regardless of whether if $T = 5m$ or $T = 50m$, so once again I consider my approach to tuning $\lambda{}$ to have been sensible.
+
+\input{resources/pegasos_d2fm_table.tex}
+
+\pagebreak{}
+\subsection{Polynomial Kernelized ($Pe_{K^{poly}}$)}
+Given that $T' = 50000m$ is clearly better than the alternatives, with $T' = 5m$ underfitting, the approach for tuning $\lambda{}$ likely was too conservative in this case.
+
+\input{resources/kernel_pegasos_poly_table.tex}
+
+\pagebreak{}
+\subsection{Gaussian Kernelized ($Pe_{K^{Gauss}}$)}
+$\rho{} = 0.5$ is again the best choice in terms of outright loss on the test set, $\rho{} = 1$ performs much better with regards to the best when comparing to $Pc_{K^{Gauss}}$; given that the training error is still quite close to the testing error, with higher values for $T$ perhaps $\rho{} = 1$ could be the better choice outright. Interestingly, $T = 5m$ also performs well when $\rho{} = 0.5$. Though to a lesser extent than in $Pe_{K^{poly}}$ $T' = 5000m$ is the clear best choice, suggesting that the approach used to tune $\lambda{}$ was again too conservative.
+
+\input{resources/kernel_pegasos_gauss_table.tex}
+
+\pagebreak{}
+
+\section{Logistic Regression}
+In both cases, the algorithm performs very similarly to the equivalent Pegasos, with the unfortunate note of the accumulative variant not performing as well as Pegasos' does.
+
+\subsection{No Feature Mapping ($Lr$)}
+\input{resources/logistic_table.tex}
+
+\subsection{Quadratic Feature Map ($Lr_{\phi^{poly}_2}$)}
+\input{resources/logistic_d2fm_table.tex}
+
+\section{Conclusions}
+The overall best performer among the trialled algorithms appears to be $Pe_{K^{poly}_3}$, although $Pe_{K^{Gauss}}$ may benefit with more iterations, and the choice for $\lambda{}$ could likely be improved in both. Logistic gradient descent and Pegasos are both improvements over Perceptron in the given circumstances, especially when running in degree-2 feature spaces. Feature removal proved to be a good idea, consistently yielding comparable performances or even being slightly better outright.
+
+\pagebreak{}
+\begin{thebibliography}{9}
+\bibitem[1]{course_material}
+The course material from Nicolo Cesa-Bianchi's Statistical Methods For Machine Learning course. (\url{https://cesa-bianchi.di.unimi.it/MSA/index_23-24.html})
+\bibitem[2]{pegasos_paper}
+Shai Shalev-Shwartz, Yoram Singer, Nathan Srebro, Andrew Cotter Pegasos: Primal Estimated
+sub-GrAdient SOlver for SVM. (\url{https://home.ttic.edu/~nati/Publications/PegasosMPB.pdf})
+
+\end{thebibliography}
+\end{document}

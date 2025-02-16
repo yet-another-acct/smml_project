@@ -1,0 +1,17 @@
+.vscode
+**/__pycache__
+results
+win_env
+linux_env
+**/*.synctex.*
+report/**/*.fls
+report/**/*.log
+report/**/*.aux
+report/**/*.idx
+report/**/*.nav
+report/**/*.out
+report/**/*.snm
+report/**/*.ind
+report/**/*.ilg
+report/**/*.toc
+report/**/*fdb_latexmk
